@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Breakout (In progress)</title>
+<style>
+body {
+overflow: hidden;
+}
+
+canvas {
+position: absolute;
+top: 0;
+left: 0;
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById("canvas");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+const ctx = canvas.getContext("2d");
+
+var money = 0;
+
+setInterval(function(){update()}, 10);
+
+function rect(x, y, width, height, colour) {
+this.x = x;
+this.y = y;
+this.width = width;
+this.height = height;
+this.top = this.y;
+this.bottom = this.y + this.height;
+this.left = this.x;
+this.right = this.x + this.width;
+this.colour = colour;
+ctx.fillStyle = colour;
+ctx.fillRect(x, y, width, height);
+this.draw = function() {
+ctx.fillStyle = this.colour;
+this.top = this.y;
+this.bottom = this.y + this.height;
+this.left = this.x;
+this.right = this.x + this.width;
+ctx.fillRect(this.x, this.y, this.width, this.height);
+}
+this.touching = function(object) {
+if (this.bottom >= object.top && this.top <= object.bottom && this.left < object.right && this.right > object.left) {
+return true;
+} else {
+return false;
+}
+}
+}
+
+var colour = {1: "#55d5ff", 2: "#ec55ff"};
+
+function brick(x, y, value) {
+this.width = 40;
+this.height = 16;
+//width and height + outline width
+this.realwidth = 42.5;
+this.realheight = 18.5;
+this.x = canvas.width / 2 - this.width / 2 + x * this.realwidth;
+this.y = canvas.height / 2 - this.height / 2 + y * this.realheight;
+this.top = this.y;
+this.bottom = this.y + this.height;
+this.left = this.x;
+this.right = this.x + this.width;
+this.value = value;
+this.colour = colour[value];
+ctx.fillStyle = this.colour;
+ctx.beginPath();
+ctx.lineWidth = 2.5;
+ctx.roundRect(this.x, this.y, this.width, this.height, 2);
+ctx.stroke();
+ctx.fill();
+ctx.fillStyle = "black";
+ctx.beginPath();
+ctx.font = "13px Comic Sans MS";
+ctx.closePath();
+ctx.fillText(this.value, this.x + 17, this.y + 12.5);
+
+this.draw = function() {
+this.colour = colour[this.value];
+ctx.fillStyle = this.colour;
+this.top = this.y;
+this.bottom = this.y + this.height;
+this.left = this.x;
+this.right = this.x + this.width;
+ctx.fillStyle = this.colour;
+ctx.beginPath();
+ctx.lineWidth = 2.5;
+ctx.roundRect(this.x, this.y, this.width, this.height, 2.5);
+ctx.stroke();
+ctx.fill();
+ctx.fillStyle = "black";
+ctx.beginPath();
+ctx.font = "13px Comic Sans MS";
+ctx.closePath();
+ctx.fillText(this.value, this.x + 17, this.y + 12.5);
+}
+this.touching = function(object) {
+if (this.bottom >= object.top && this.top <= object.bottom && this.left < object.right && this.right > object.left) {
+return true;
+} else {
+return false;
+}
+}
+}
+
+function arc(x, y, radius, colour) {
+this.x = x;
+this.y = y;
+this.radius = radius;
+this.top = this.y - radius;
+this.bottom = this.y + radius;
+this.left = this.x - radius;
+this.right = this.x + radius;
+ctx.fillStyle = colour;
+ctx.arc(x, y, radius, 0, 2 * Math.PI);
+ctx.fill();
+this.draw = function(){
+ctx.fillStyle = colour;
+ctx.beginPath();
+ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+ctx.closePath();
+ctx.fill();
+}
+this.touching = function(object) {
+if (this.bottom >= object.top && this.top <= object.bottom && this.left < object.right && this.right > object.left) {
+return true;
+} else {
+return false;
+}
+}
+}
+
+function text(text, x, y, size, colour) {
+this.text = text;
+ctx.fillStyle = colour;
+ctx.beginPath();
+ctx.font = size + "px Comic Sans MS";
+ctx.closePath();
+ctx.fillText(text, x, y);
+this.write = function() {
+ctx.fillStyle = colour;
+ctx.beginPath();
+ctx.font = size + "px Comic Sans MS";
+ctx.closePath();
+ctx.fillText(this.text, x, y);
+}
+}
+
+function update() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+moneytext.write();
+basicicon.draw();
+basicpricetext.write();
+basicamounttext.write();
+for (let i in bricks) {
+bricks[i].draw();
+}
+}
+var bricks = [];
+for (let i = -2; i <= 2; i++) {
+for (let j = -10; j <= 10; j++) {
+bricks.push(new brick(i, j, 2));
+}
+}
+
+var basicicon = new arc(10, 10, 10, "yellow");
+var basicprice = 25;
+var basicpricetext = new text("$" + basicprice, 0, 35, 10, "black");
+var basics = 0;
+var basicamounttext = new text("You have " + basics + " basic balls", 0, 50, 10, "black");
+
+var moneytext = new text("$" + money, canvas.width - 150, 30, 20, "black");
+
+canvas.addEventListener("click", (event) => {
+//event.offsetX
+//event.offsetY
+let object = {top: event.offsetY, bottom: event.offsetY, left: event.offsetX, right: event.offsetX};
+for (let i in bricks) {
+if (bricks[i].touching(object)) {
+money += 1;
+moneytext.text = "$" + money;
+if (bricks[i].value == 1) {
+bricks.splice(i, 1);
+} else {
+bricks[i].value -= 1;
+}
+}
+}
+
+if (basicicon.touching(object) && money >= basicprice) {
+money -= basicprice;
+basics += 1;
+basicprice = Math.round(1.5 ** basics * 25);
+moneytext.text = "$" + money;
+basicpricetext.text = "$" + basicprice;
+basicamounttext.text = "You have " + basics + " basic balls";
+}
+});
+</script>
+</body>
+</html>
